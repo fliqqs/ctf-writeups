@@ -27,7 +27,11 @@ But after some research I learned that python objects are placed on the heap hen
   ![stack image](https://courses.engr.illinois.edu/cs225/fa2022/assets/notes/stack_heap_memory/memory_layout.png)
 
 Lets have a look at that line libc.gets(buf1), some googling reveals what it is and provides a description. 
+
+
 ![gets man page](/ductf_2022/babypywn/gets.png)
+
+
 The last line "no check for buffer overrun is performed" is music to our ears.
 
 We can use perl to generate a buffer 512 bytes long "perl -E 'say "a" x 512' appending 'DUCTF' to the end should cause the flag to be outputed.
