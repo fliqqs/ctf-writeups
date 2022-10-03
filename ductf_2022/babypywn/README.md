@@ -15,7 +15,7 @@ if b'DUCTF' in bytes(buf2):
 ```
 
 From a first glance this looked something to do with buffer overflow so I ran it locally and used the addressof() and saw the buffers are 512 bytes apart indicating they are alligned one after another.
-
+![gets man page](memory_addresses.PNG)
 Looking at the Memory addresses of the buffers I thought they would grow lower as is on the stack.
 But after some research I learned that python objects are placed on the heap hence the addressing grows upwards. This means we could overflow from the memory of buf1 into buf2.  
 
