@@ -17,7 +17,7 @@ if b'DUCTF' in bytes(buf2):
 From a first glance this looked something to do with buffer overflow so I ran it locally and used the addressof() and saw the buffers are 512 bytes apart indicating they are alligned one after another.
 
 
-![memory addresses](memory.PNG)
+![memory addresses](/ductf_2022/babypywn/memory.png)
 
 
 Looking at the Memory addresses of the buffers I thought they would grow lower as is on the stack.
@@ -27,7 +27,7 @@ But after some research I learned that python objects are placed on the heap hen
   ![stack image](https://courses.engr.illinois.edu/cs225/fa2022/assets/notes/stack_heap_memory/memory_layout.png)
 
 Lets have a look at that line libc.gets(buf1), some googling reveals what it is and provides a description. 
-![gets man page](gets.PNG)
+![gets man page](/ductf_2022/babypywn/gets.png)
 The last line "no check for buffer overrun is performed" is music to our ears.
 
 We can use perl to generate a buffer 512 bytes long "perl -E 'say "a" x 512' appending 'DUCTF' to the end should cause the flag to be outputed.
