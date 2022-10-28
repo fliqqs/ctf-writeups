@@ -1,0 +1,131 @@
+## Gonna lift em all
+For this challenge we are given two files.
+
+chall.py
+```
+from Crypto.Util.number import bytes_to_long, getPrime
+import random
+
+FLAG = b'HTB{??????????????????????????????????????????????????????????????????????}'
+
+def gen_params():
+  p = getPrime(1024)
+  g = random.randint(2, p-2)
+  x = random.randint(2, p-2)
+  h = pow(g, x, p)
+  return (p, g, h), x
+
+def encrypt(pubkey):
+  p, g, h = pubkey
+  m = bytes_to_long(FLAG)
+  y = random.randint(2, p-2)
+  s = pow(h, y, p)
+  return (g * y % p, m * s % p)
+
+def main():
+  pubkey, privkey = gen_params()
+  c1, c2 = encrypt(pubkey)
+
+  with open('data.txt', 'w') as f:
+    f.write(f'p = {pubkey[0]}\ng = {pubkey[1]}\nh = {pubkey[2]}\n(c1, c2) = ({c1}, {c2})\n')
+```
+data.txt
+```
+p = 163096280281091423983210248406915712517889481034858950909290409636473708049935881617682030048346215988640991054059665720267702269812372029514413149200077540372286640767440712609200928109053348791072129620291461211782445376287196340880230151621619967077864403170491990385250500736122995129377670743204192511487
+g = 90013867415033815546788865683138787340981114779795027049849106735163065530238112558925433950669257882773719245540328122774485318132233380232659378189294454934415433502907419484904868579770055146403383222584313613545633012035801235443658074554570316320175379613006002500159040573384221472749392328180810282909
+h = 36126929766421201592898598390796462047092189488294899467611358820068759559145016809953567417997852926385712060056759236355651329519671229503584054092862591820977252929713375230785797177168714290835111838057125364932429350418633983021165325131930984126892231131770259051468531005183584452954169653119524751729
+(c1, c2) = (159888401067473505158228981260048538206997685715926404215585294103028971525122709370069002987651820789915955483297339998284909198539884370216675928669717336010990834572641551913464452325312178797916891874885912285079465823124506696494765212303264868663818171793272450116611177713890102083844049242593904824396, 119922107693874734193003422004373653093552019951764644568950336416836757753914623024010126542723403161511430245803749782677240741425557896253881748212849840746908130439957915793292025688133503007044034712413879714604088691748282035315237472061427142978538459398404960344186573668737856258157623070654311038584)
+
+```
+So we are given the method to encrypt the flag and some of the values used along the way. My first thought was we could do some brute force. In particular this line "h = pow(g, x, p)". So I wrote something to try and start guessing.
+
+```
+for x in range (2, p-2):
+  if pow(x,y,p) == h:
+    print(x)
+```
+After waiting a while and doing some research I realised that guessing the exponent was going to take a very long time and would not yeild any results. As this is what makes RSA secure I thought there must be some other weakness to exploit. The next day with a fresh pair of eyes I saw this line.
+```
+return (g * y % p, m * s % p)
+```
+This difference is that this line just uses multiplication not exponents. This output is stored in values c1, c2 which are given to us:
+```
+c1, c2 = encrypt(pubkey)
+```
+Given that we have c1, g and p maybe we could calulate y. For readability I will make the missing value x and fill in the rest.
+
+c1 = g * x mod p
+
+900138.. * x mod 163096.. = 159888..
+
+After looking around I found a post asking this very question and we can solve for this missing value x with this equation:
+
+x = inv(g, p) * c1 % p
+
+### why did this work?
+
+For me this was magic so I thought I would try explain how this worked after doing some research. This is just my understanding so you can skip ahead if you like.
+
+So we have to solve for x, we can look at this problem by doing some rearranging. We are asking G multipled by what produces the same result as c1 (mod p).
+
+gx ≡ c1 (mod p)
+
+In normal arithmatic we would divide both sides by g to solve for x but that would not work here as we are expecting a whole number result not c1/g. So what if instead we removed the g from the equation. To simplify the problem to:
+
+x = c1(mod p)
+
+We could achive this by multipying both sides by the modular inverse of g which is expressed as g<sup>-1</sup>. This is some value such that  g * g<sup>-1</sup> = 1 with respect to (mod   n). This would turn our problem into.
+
+(g * g<sup>-1</sup>) * x = c1 * (g<sup>-1</sup>)(mod p)
+
+1 * x = c1 * (g<sup>-1</sup>)(mod p)
+
+x = c1 * (g<sup>-1</sup>)(mod p)
+
+There is a built in function for this so we can call inverse(g,p) to help so we can end up with the formula:
+
+x = c1 * inv(g, p) % p
+
+### Back on topic 
+So we were able to solve for y using:
+```
+y = inv(g, p) * c1 % p
+```
+This allows us to re-create the s value used in the encryption proccess:
+```
+s = pow(h, y, p)
+```
+The next step is to solve the other section of the return statement.
+```
+m * s % p = c2
+```
+This is exactly like the one before so we use 
+```
+m = inv(s, p) * c2 % p
+```
+Now we have m in long form so we just have to turn it back into something readable using:
+```
+print(bytearray.fromhex(hex(m)[2:]).decode())
+>>> HTB{b3_c4r3ful_wh3n_1mpl3m3n71n6_cryp705y573m5_1n_7h3_mul71pl1c471v3_6r0up}
+```
+
+My function for reversing is as follows.
+```
+def reverse():
+  c2 = 119922107693874734193003422004373653093552019951764644568950336416836757753914623024010126542723403161511430245803749782677240741425557896253881748212849840746908130439957915793292025688133503007044034712413879714604088691748282035315237472061427142978538459398404960344186573668737856258157623070654311038584
+  c1 = 159888401067473505158228981260048538206997685715926404215585294103028971525122709370069002987651820789915955483297339998284909198539884370216675928669717336010990834572641551913464452325312178797916891874885912285079465823124506696494765212303264868663818171793272450116611177713890102083844049242593904824396
+  #if a*x%b = y  solve for x inv(a,b) * y % b
+  g = 90013867415033815546788865683138787340981114779795027049849106735163065530238112558925433950669257882773719245540328122774485318132233380232659378189294454934415433502907419484904868579770055146403383222584313613545633012035801235443658074554570316320175379613006002500159040573384221472749392328180810282909
+  p = 163096280281091423983210248406915712517889481034858950909290409636473708049935881617682030048346215988640991054059665720267702269812372029514413149200077540372286640767440712609200928109053348791072129620291461211782445376287196340880230151621619967077864403170491990385250500736122995129377670743204192511487
+  h = 36126929766421201592898598390796462047092189488294899467611358820068759559145016809953567417997852926385712060056759236355651329519671229503584054092862591820977252929713375230785797177168714290835111838057125364932429350418633983021165325131930984126892231131770259051468531005183584452954169653119524751729
+  inv = inverse(g,p)
+  inv = inv * c1
+  y = inv % p
+  #now we have y we can re-create s
+  s = pow(h,y,p)
+  #can crack the other cipher text
+  inv = inverse(s,p)
+  inv = inv * c2
+  m = inv % p
+  print(bytearray.fromhex(hex(m)[2:]).decode())
+```
