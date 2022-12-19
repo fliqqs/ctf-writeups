@@ -2,6 +2,7 @@
 For this reversing challenge we are given a binary and told it has some secrets. 
 
 Running this application by itself resulted in a segfault. So I tried with some arguments.
+
 ![segfault](/DCSC_2022/secrets/seg_fault.png)
 
 I decided to open up the application in ghidra and have a poke around. I saw that there was a red herring so I decided to chase it.
