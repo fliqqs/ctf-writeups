@@ -52,6 +52,8 @@ The last step was to send it to the server, initally I tried using curl.
 ![bad curl](/hack_the_boo/evaluation_deck/badrequest.PNG)
 curl did not like having single quotes in my payload so I tried with postman instead and had success.
 ![postman](/hack_the_boo/evaluation_deck/postman.PNG)
+
+
 After reading stackoverflow I figured I needed to use escape characters!
 ![curl](/hack_the_boo/evaluation_deck/curl.PNG)
 And was able to get the flag using the terminal like a champ :)
